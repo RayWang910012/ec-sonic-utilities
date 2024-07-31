@@ -201,7 +201,7 @@ def add_vlan_member(db, vid, port, untagged):
     log.log_info("'vlan member add {} {}' executing...".format(vid, port))
 
     vlan = 'Vlan{}'.format(vid)
-    
+
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
@@ -233,7 +233,7 @@ def add_vlan_member(db, vid, port, untagged):
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
            (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is a router interface!".format(port))
-        
+
         portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
         if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
@@ -257,7 +257,7 @@ def del_vlan_member(db, vid, port):
     ctx = click.get_current_context()
     log.log_info("'vlan member del {} {}' executing...".format(vid, port))
     vlan = 'Vlan{}'.format(vid)
-    
+
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
@@ -283,3 +283,28 @@ def del_vlan_member(db, vid, port):
     except JsonPatchConflict:
         ctx.fail("{} invalid or does not exist, or {} is not a member of {}".format(vlan, port, vlan))
 
+#######
+#
+# 'neigh-suppress' group ('config neigh-suppress vlan...')
+#
+@click.group(cls=clicommon.AbbreviationGroup, name='neigh-suppress')
+def neigh_suppress():
+    """ Neighbour Suppress VLAN-related configuration """
+    pass
+
+@neigh_suppress.command('vlan')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('state', metavar='<on|off>', required=True, type=click.Choice(["on", "off"]))
+@clicommon.pass_db
+def set_neigh_suppress(db, vid, state):
+    if vid<1 or vid>4094:
+        ctx.fail("Invalid Vlan Id, Valid Range : 1 to 4094")
+    vlan = 'Vlan{}'.format(vid)
+    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
+        click.echo("{} doesn't exist".format(vlan))
+        return
+    if state == "on":
+        fvs = {'suppress': "on"}
+        db.cfgdb.set_entry('SUPPRESS_VLAN_NEIGH', vlan, fvs)
+    else:
+        db.cfgdb.set_entry('SUPPRESS_VLAN_NEIGH', vlan, None)

@@ -146,7 +146,7 @@ def get_cmd_output(cmd):
 iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
 
 #
-# Display all storm-control data 
+# Display all storm-control data
 #
 def display_storm_all():
     """ Show storm-control """
@@ -293,6 +293,7 @@ cli.add_command(p4_table.p4_table)
 cli.add_command(processes.processes)
 cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(sflow.sflow)
+cli.add_command(vlan.neigh_suppress)
 cli.add_command(vlan.vlan)
 cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
@@ -444,7 +445,7 @@ def is_mgmt_vrf_enabled(ctx):
     return False
 
 #
-# 'storm-control' group 
+# 'storm-control' group
 # "show storm-control [interface <interface>]"
 #
 @cli.group('storm-control', invoke_without_command=True)
@@ -2094,7 +2095,7 @@ def summary(db):
             key_values = key.split('|')
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
-                values["local_discriminator"] = "NA"            
+                values["local_discriminator"] = "NA"
             bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
                                 values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"], values["local_discriminator"]])
 
@@ -2125,7 +2126,7 @@ def peer(db, peer_ip):
             key_values = key.split(delimiter)
             values = db.db.get_all(db.db.STATE_DB, key)
             if "local_discriminator" not in values.keys():
-                values["local_discriminator"] = "NA"            
+                values["local_discriminator"] = "NA"
             bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
                                 values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop"), values.get("local_discriminator")])
 

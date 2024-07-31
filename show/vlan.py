@@ -147,19 +147,19 @@ def config(db):
     member_data = db.cfgdb.get_table('VLAN_MEMBER')
     interface_naming_mode = clicommon.get_interface_naming_mode()
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-   
+
     def get_iface_name_for_display(member):
         name_for_display = member
         if interface_naming_mode == "alias" and member:
             name_for_display = iface_alias_converter.name_to_alias(member)
         return name_for_display
-    
+
     def get_tagging_mode(vlan, member):
         if not member:
             return ''
         tagging_mode = db.cfgdb.get_entry('VLAN_MEMBER', (vlan, member)).get('tagging_mode')
         return '?' if tagging_mode is None else tagging_mode
-        
+
     def tablelize(keys, data):
         table = []
 
@@ -168,7 +168,7 @@ def config(db):
             # vlan with no members
             if not members:
                 members = [(k, '')]
-            
+
             for vlan, member in natsorted(members):
                 r = [vlan, data[vlan]['vlanid'], get_iface_name_for_display(member), get_tagging_mode(vlan, member)]
                 table.append(r)
@@ -178,3 +178,59 @@ def config(db):
     header = ['Name', 'VID', 'Member', 'Mode']
     click.echo(tabulate(tablelize(keys, data), header))
 
+#Neigh Suppress
+@click.group(cls=clicommon.AliasedGroup)
+def neigh_suppress():
+    """ show neigh-suppress """
+    pass
+@neigh_suppress.command('all')
+@clicommon.pass_db
+def neigh_suppress_all(db):
+    """ Show neigh-suppress all """
+
+    header = ['VLAN', 'STATUS', 'ASSOCIATED_NETDEV']
+    body = []
+
+    vxlan_table = db.cfgdb.get_table('VXLAN_TUNNEL_MAP')
+    suppress_table = db.cfgdb.get_table('SUPPRESS_VLAN_NEIGH')
+    vxlan_keys = vxlan_table.keys()
+    num=0
+    if vxlan_keys is not None:
+      for key in natsorted(vxlan_keys):
+          key1 = vxlan_table[key]['vlan']
+          netdev = vxlan_keys[0][0]+"-"+key1[4:]
+          if key1 not in suppress_table:
+              supp_str = "Not Configured"
+          else:
+              supp_str = "Configured"
+          body.append([vxlan_table[key]['vlan'], supp_str, netdev])
+          num += 1
+    click.echo(tabulate(body, header, tablefmt="grid"))
+    output = 'Total count : '
+    output += ('%s \n' % (str(num)))
+    click.echo(output)
+
+@neigh_suppress.command('vlan')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@clicommon.pass_db
+def neigh_suppress_vlan(db,vid):
+    """ Show neigh-suppress vlan"""
+    header = ['VLAN', 'STATUS', 'ASSOCIATED_NETDEV']
+    body = []
+
+    vxlan_table = db.cfgdb.get_table('VXLAN_TUNNEL_MAP')
+    suppress_table = db.cfgdb.get_table('SUPPRESS_VLAN_NEIGH')
+    vlan = 'Vlan{}'.format(vid)
+    vxlan_keys = vxlan_table.keys()
+
+    if vxlan_keys is not None:
+      for key in natsorted(vxlan_keys):
+          key1 = vxlan_table[key]['vlan']
+          if(key1 == vlan):
+                netdev = vxlan_keys[0][0]+"-"+key1[4:]
+                if key1 in suppress_table:
+                    supp_str = "Configured"
+                    body.append([vxlan_table[key]['vlan'], supp_str, netdev])
+                    click.echo(tabulate(body, header, tablefmt="grid"))
+                    return
+    print(vlan + " is not configured in vxlan tunnel map table")
